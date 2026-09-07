@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenVPN 3 SSO WebApp</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+        :root {
+            --bg-grad-1: #0f172a;
+            --bg-grad-2: #1e1b4b;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent: #38bdf8;
+            --danger: #f43f5e;
+            --success: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-grad-1), var(--bg-grad-2));
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background blobs */
+        .blob {
+            position: absolute;
+            filter: blur(80px);
+            z-index: 0;
+            opacity: 0.6;
+            animation: float 10s infinite ease-in-out alternate;
+        }
+
+        .blob-1 {
+            top: -10%;
+            left: -10%;
+            width: 400px;
+            height: 400px;
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 50%;
+        }
+
+        .blob-2 {
+            bottom: -10%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: rgba(167, 139, 250, 0.3);
+            border-radius: 50%;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(30px, 50px) scale(1.1);
+            }
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            width: 90%;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 15px;
+            margin-bottom: 32px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 32px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            box-shadow: 0 0 10px var(--text-muted);
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        .status-badge.connected .dot {
+            background: var(--success);
+            box-shadow: 0 0 12px var(--success);
+        }
+
+        .status-badge.connecting .dot {
+            background: #f59e0b;
+            box-shadow: 0 0 12px #f59e0b;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-badge.disconnected .dot {
+            background: var(--danger);
+            box-shadow: 0 0 12px var(--danger);
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.5);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .btn {
+            appearance: none;
+            border: none;
+            background: linear-gradient(135deg, #38bdf8, #2563eb);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 14px 28px;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
+            box-shadow: 0 10px 20px -10px rgba(56, 189, 248, 0.5);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -10px rgba(56, 189, 248, 0.7);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-disconnect {
+            background: linear-gradient(135deg, #f43f5e, #be123c);
+            box-shadow: 0 10px 20px -10px rgba(244, 63, 94, 0.5);
+            display: none;
+        }
+
+        .btn-disconnect:hover {
+            box-shadow: 0 15px 25px -10px rgba(244, 63, 94, 0.7);
+        }
+
+        .loader {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .btn.loading .btn-text {
+            display: none;
+        }
+
+        .btn.loading .loader {
+            display: block;
+        }
+
+        .btn:disabled,
+        .btn.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="container" id="app">
+        <div class="header">
+            <h1>GOpenVPN</h1>
+            <p>SSO Authentication Gateway</p>
+        </div>
+
+        <div class="status-badge disconnected" id="statusBadge">
+            <div class="dot"></div>
+            <span id="statusText">Disconnected</span>
+        </div>
+
+        <button class="btn" id="btnConnect" onclick="startVPN()">
+            <span class="btn-text">Connect</span>
+            <div class="loader"></div>
+        </button>
+
+        <button class="btn btn-disconnect" id="btnDisconnect" onclick="stopVPN()">
+            <span class="btn-text">Disconnect</span>
+            <div class="loader"></div>
+        </button>
+    </div>
+
+    <script>
+        const btnConnect = document.getElementById('btnConnect');
+        const btnDisconnect = document.getElementById('btnDisconnect');
+        const statusBadge = document.getElementById('statusBadge');
+        const statusText = document.getElementById('statusText');
+
+        setInterval(updateStatus, 2000);
+
+        async function updateStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+
+                if (data.connected) {
+                    setUIState('connected');
+                } else if (statusBadge.classList.contains('connected')) {
+                    setUIState('disconnected');
+                }
+            } catch (e) {
+                console.error("Error fetching status", e);
+            }
+        }
+
+        function setUIState(state) {
+            statusBadge.className = `status-badge ${state}`;
+            btnConnect.classList.remove('loading');
+            btnDisconnect.classList.remove('loading');
+
+            if (state === 'connected') {
+                statusText.innerText = 'Connected (tun0 Active)';
+                btnConnect.style.display = 'none';
+                btnConnect.disabled = true;
+                btnDisconnect.style.display = 'block';
+                btnDisconnect.disabled = false;
+                document.getElementById('app').style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            } else if (state === 'connecting') {
+                statusText.innerText = 'Waiting for Authentication...';
+                btnConnect.style.display = 'block';
+                btnConnect.classList.add('loading');
+                btnConnect.disabled = true;
+                btnDisconnect.style.display = 'none';
+                document.getElementById('app').style.borderColor = 'rgba(245, 158, 11, 0.4)';
+            } else {
+                statusText.innerText = 'Disconnected';
+                btnConnect.style.display = 'block';
+                btnConnect.disabled = false;
+                btnDisconnect.style.display = 'none';
+                document.getElementById('app').style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            }
+        }
+
+        async function startVPN() {
+            if (btnConnect.disabled || btnConnect.classList.contains('loading')) return;
+            setUIState('connecting');
+
+            try {
+                const res = await fetch('/api/start', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.url) {
+                    window.open(data.url, '_blank');
+                } else if (data.status === 'connected') {
+                    setUIState('connected');
+                } else {
+                    alert('Error: ' + (data.error || 'Could not start'));
+                    setUIState('disconnected');
+                }
+            } catch (e) {
+                alert('Backend connection failed.');
+                setUIState('disconnected');
+            }
+        }
+
+        async function stopVPN() {
+            if (btnDisconnect.disabled || btnDisconnect.classList.contains('loading')) return;
+            btnDisconnect.classList.add('loading');
+            btnDisconnect.disabled = true;
+            try {
+                await fetch('/api/stop', { method: 'POST' });
+            } catch (e) {
+                btnDisconnect.classList.remove('loading');
+                btnDisconnect.disabled = false;
+            }
+        }
+
+        updateStatus();
+    </script>
+</body>
+
+</html>

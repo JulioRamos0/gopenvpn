@@ -1,0 +1,15 @@
+services:
+  vpn_servipar:
+    build: .
+    container_name: vpn_servipar
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    stdin_open: true
+    tty: true
+    ports:
+      - "8081:80"
+    environment:
+      - OPENVPN_PROFILE=${OPENVPN_PROFILE}
+      - PORT=80
