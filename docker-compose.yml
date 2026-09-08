@@ -10,6 +10,16 @@ services:
     tty: true
     ports:
       - "8081:80"
+      - "8082:8082"
+      - "8083:8083"
+      - "8084:8084"
     environment:
       - OPENVPN_PROFILE=${OPENVPN_PROFILE}
       - PORT=80
+    dns:
+      - ${VPN_DNS}
+      - 8.8.8.8
+    volumes:
+      - ./data:/data
+    extra_hosts:
+      - "${EXTRA_HOST_8082}"

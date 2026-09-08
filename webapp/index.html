@@ -227,6 +227,130 @@
             pointer-events: none;
             opacity: 0.8;
         }
+
+        .proxy-section {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--glass-border);
+            text-align: left;
+        }
+
+        .proxy-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 16px;
+        }
+
+        .proxy-form {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .proxy-form input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .proxy-form input:focus {
+            border-color: var(--accent);
+        }
+        
+        #proxyPort {
+            width: 80px;
+        }
+
+        #proxyTarget {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .btn-small {
+            padding: 10px 16px;
+            font-size: 14px;
+            width: auto;
+        }
+
+        .proxy-list {
+            list-style: none;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .proxy-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .proxy-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        .proxy-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+        }
+
+        .proxy-list li span {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 12px;
+        }
+        
+        .proxy-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .btn-edit {
+            background: rgba(56, 189, 248, 0.2);
+            color: var(--accent);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-edit:hover {
+            background: rgba(56, 189, 248, 0.4);
+            border-color: rgba(56, 189, 248, 0.5);
+        }
+
+        .btn-delete {
+            background: rgba(244, 63, 94, 0.2);
+            color: var(--danger);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .btn-delete:hover {
+            background: rgba(244, 63, 94, 0.4);
+            border-color: rgba(244, 63, 94, 0.5);
+        }
     </style>
 </head>
 
@@ -254,6 +378,18 @@
             <span class="btn-text">Disconnect</span>
             <div class="loader"></div>
         </button>
+
+        <div class="proxy-section">
+            <h3>Port Forwarding</h3>
+            <div class="proxy-form">
+                <input type="number" id="proxyPort" placeholder="Port" min="1" max="65535">
+                <input type="text" id="proxyTarget" placeholder="Target URL (e.g. http://server)">
+                <button class="btn btn-small" onclick="addProxy()">Save</button>
+            </div>
+            <ul class="proxy-list" id="proxyList">
+                <li style="color: var(--text-muted); justify-content: center;">Loading proxies...</li>
+            </ul>
+        </div>
     </div>
 
     <script>
@@ -341,7 +477,86 @@
             }
         }
 
+        async function fetchProxies() {
+            try {
+                const res = await fetch('/api/proxies');
+                const rules = await res.json();
+                const list = document.getElementById('proxyList');
+                list.innerHTML = '';
+                if (rules && rules.length > 0) {
+                    rules.forEach(rule => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<span><b>${rule.port}</b> ➞ ${rule.target}</span>
+                        <div class="proxy-actions">
+                            <button class="btn-edit" onclick="editProxy(${rule.port}, '${rule.target}')">Edit</button>
+                            <button class="btn-delete" onclick="deleteProxy(${rule.port})">Delete</button>
+                        </div>`;
+                        list.appendChild(li);
+                    });
+                } else {
+                    list.innerHTML = '<li style="color: var(--text-muted); justify-content: center;">No proxies configured</li>';
+                }
+            } catch (e) {
+                console.error("Error fetching proxies", e);
+            }
+        }
+
+        async function addProxy() {
+            const portInput = document.getElementById('proxyPort');
+            const targetInput = document.getElementById('proxyTarget');
+            const port = parseInt(portInput.value);
+            let target = targetInput.value.trim();
+
+            if (!port || !target) {
+                alert("Please provide both port and target URL.");
+                return;
+            }
+            
+            if (!target.startsWith('http://') && !target.startsWith('https://')) {
+                target = 'http://' + target;
+            }
+
+            try {
+                const res = await fetch('/api/proxies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ port, target })
+                });
+
+                if (res.ok) {
+                    portInput.value = '';
+                    targetInput.value = '';
+                    fetchProxies();
+                } else {
+                    const err = await res.text();
+                    alert("Error saving proxy: " + err);
+                }
+            } catch (e) {
+                alert("Error connecting to server.");
+            }
+        }
+
+        function editProxy(port, target) {
+            document.getElementById('proxyPort').value = port;
+            document.getElementById('proxyTarget').value = target;
+            document.getElementById('proxyTarget').focus();
+        }
+
+        async function deleteProxy(port) {
+            try {
+                const res = await fetch(`/api/proxies?port=${port}`, { method: 'DELETE' });
+                if (res.ok) {
+                    fetchProxies();
+                } else {
+                    alert("Error deleting proxy.");
+                }
+            } catch (e) {
+                alert("Error connecting to server.");
+            }
+        }
+
         updateStatus();
+        fetchProxies();
     </script>
 </body>
 

@@ -61,6 +61,12 @@ docker-compose up -d
 5. Once you successfully log in using your browser, close that tab.
 6. The original **GopenVPN** tab will automatically detect the creation of the `tun0` interface and change its state to **Connected**.
 
+### 4. Port Forwarding (Proxies)
+GopenVPN includes a built-in reverse proxy (accessible from the UI) that allows you to forward local ports to target web applications running *inside* the VPN. This avoids having to run heavy alternatives like Nginx Proxy Manager.
+- Proxy rules are persisted in `/data/proxies.json`.
+- For the rules to survive a container restart, you **must** mount the `/data` folder to your host (see docker-compose examples below).
+- The reverse proxy automatically supports WebSockets.
+
 ---
 
 ## ⚙️ Internal API Endpoints
@@ -71,6 +77,7 @@ The frontend interacts with the following endpoints exposed by the Go binary:
 - `POST /api/start`: Initializes DBus, decodes the profile, runs `openvpn3 session-start`, and returns a JSON with the SSO `url` to open.
 - `POST /api/stop`: Runs `openvpn3 session-manage --disconnect` to terminate the tunnel.
 - `GET /api/status`: Validates at the OS level if the `tun0` interface exists, returning a boolean `{ "connected": true/false }`.
+- `GET`, `POST`, `DELETE /api/proxies`: Manage proxy rules dynamically.
 
 ---
 
@@ -78,7 +85,7 @@ The frontend interacts with the following endpoints exposed by the Go binary:
 
 Since this container routes its own traffic through the VPN once connected, the primary utility of this project is to use it as a **"Sidecar"** or main network container for other services.
 
-For an external container to use the VPN connection of `vpn_servipar`, you must attach the external container's network to the VPN's network using the `network_mode` directive.
+For an external container to use the VPN connection of `gopenvpn`, you must attach the external container's network to the VPN's network using the `network_mode` directive.
 
 ### Option 1: In the same `docker-compose.yml` (Recommended)
 
@@ -87,9 +94,9 @@ If you are deploying your applications alongside the VPN, you can use `network_m
 ```yaml
 services:
   # 1. The base VPN service
-  vpn_servipar:
+  gopenvpn:
     build: .
-    container_name: vpn_servipar
+    container_name: gopenvpn
     cap_add:
       - NET_ADMIN
     devices:
@@ -98,20 +105,24 @@ services:
     tty: true
     ports:
       - "8081:80"
+      # Expose any ports you are forwarding here:
+      # - "8082:8082" 
     environment:
       - OPENVPN_PROFILE=${OPENVPN_PROFILE}
+    volumes:
+      - ./data:/data # Persist proxy rules
 
   # 2. Your application that needs to use the VPN
   my_internal_app:
     image: curlimages/curl
     container_name: internal_app
     # THIS IS THE KEY LINE:
-    network_mode: "service:vpn_servipar"
+    network_mode: "service:gopenvpn"
     
     # Important: Since it shares the network stack with the VPN, 
     # the application CANNOT expose ports on its own.
     # If 'my_internal_app' needs to expose port 3000, 
-    # you must declare it in the 'ports' section of 'vpn_servipar'.
+    # you must declare it in the 'ports' section of 'gopenvpn'.
     command: ["sleep", "infinity"]
 ```
 
@@ -121,11 +132,11 @@ If the VPN container is already running, you can launch any other container on t
 
 Example to verify that traffic goes out through the VPN:
 ```bash
-docker run --rm -it --network container:vpn_servipar curlimages/curl https://ifconfig.me
+docker run --rm -it --network container:gopenvpn curlimages/curl https://ifconfig.me
 ```
 
 ### ⚠️ Important rules about `network_mode`
 
-1. **Shared Ports:** When a container uses the network of another, **it loses the ability to use the `ports` directive**. All ports required by the child container must be published in the parent container (`vpn_servipar`).
+1. **Shared Ports:** When a container uses the network of another, **it loses the ability to use the `ports` directive**. All ports required by the child container must be published in the parent container (`gopenvpn`).
 2. **Localhost:** Both containers share the same network interface (and the same `localhost`). The child container can communicate with the VPN WebApp by making requests directly to `http://localhost:80`.
-3. **Dependencies:** The VPN container must start *before* the containers that depend on it. It is recommended to use `depends_on: vpn_servipar` in your `docker-compose.yml`.
+3. **Dependencies:** The VPN container must start *before* the containers that depend on it. It is recommended to use `depends_on: gopenvpn` in your `docker-compose.yml`.
