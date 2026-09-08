@@ -4,146 +4,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenVPN 3 SSO WebApp</title>
+    <title>GopenVPN Gateway</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
 
         :root {
-            --bg-grad-1: #0f172a;
-            --bg-grad-2: #1e1b4b;
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --accent: #38bdf8;
-            --danger: #f43f5e;
-            --success: #10b981;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg-dark: #0b0f19;
+            --bg-gradient: radial-gradient(circle at top left, #1a1c29, #0b0f19);
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-bg-hover: rgba(255, 255, 255, 0.06);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-primary: #00f2fe;
+            --accent-secondary: #4facfe;
+            --danger: #ff4b4b;
+            --success: #00ff88;
+            --warning: #ffb800;
+            --text-main: #ffffff;
+            --text-muted: #8b92a5;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Outfit', sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, var(--bg-grad-1), var(--bg-grad-2));
+            background: var(--bg-gradient);
+            background-color: var(--bg-dark);
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
-            align-items: center;
             justify-content: center;
-            overflow: hidden;
-            position: relative;
+            padding: 20px;
         }
 
-        /* Animated background blobs */
-        .blob {
-            position: absolute;
-            filter: blur(80px);
-            z-index: 0;
-            opacity: 0.6;
-            animation: float 10s infinite ease-in-out alternate;
-        }
-
-        .blob-1 {
-            top: -10%;
-            left: -10%;
-            width: 400px;
-            height: 400px;
-            background: rgba(56, 189, 248, 0.3);
+        /* Ambient Glow Effects */
+        .ambient-glow {
+            position: fixed;
+            width: 60vw;
+            height: 60vw;
             border-radius: 50%;
+            background: radial-gradient(circle, rgba(79, 172, 254, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+            top: -20vh;
+            left: -20vw;
+            z-index: -1;
+            pointer-events: none;
         }
 
-        .blob-2 {
-            bottom: -10%;
-            right: -10%;
-            width: 500px;
-            height: 500px;
-            background: rgba(167, 139, 250, 0.3);
-            border-radius: 50%;
-            animation-delay: -5s;
+        .ambient-glow.right {
+            background: radial-gradient(circle, rgba(0, 242, 254, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+            top: auto;
+            bottom: -20vh;
+            left: auto;
+            right: -20vw;
         }
 
-        @keyframes float {
-            0% {
-                transform: translate(0, 0) scale(1);
-            }
-
-            100% {
-                transform: translate(30px, 50px) scale(1.1);
-            }
-        }
-
-        .container {
-            position: relative;
-            z-index: 10;
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 40px;
-            width: 90%;
+        .app-container {
+            width: 100%;
             max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            padding-top: 40px;
+            padding-bottom: 40px;
+        }
+
+        /* Header */
+        .header {
             text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 10px;
         }
 
         .header h1 {
-            font-size: 28px;
-            font-weight: 800;
-            margin-bottom: 8px;
-            background: linear-gradient(to right, #38bdf8, #818cf8);
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-main), var(--text-muted));
             background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
         }
 
         .header p {
-            color: var(--text-muted);
-            font-size: 15px;
-            margin-bottom: 32px;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 999px;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--glass-border);
+            color: var(--accent-secondary);
             font-size: 14px;
             font-weight: 600;
-            margin-bottom: 32px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 4px;
         }
 
-        .dot {
-            width: 10px;
-            height: 10px;
+        /* Glass Card Base */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        /* Status Section */
+        .status-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--glass-border);
+            transition: background 0.5s ease;
+        }
+
+        .status-card.connected::before {
+            background: var(--success);
+            box-shadow: 0 0 15px var(--success);
+        }
+
+        .status-card.connecting::before {
+            background: var(--warning);
+            box-shadow: 0 0 15px var(--warning);
+        }
+
+        .status-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
             background: var(--text-muted);
-            box-shadow: 0 0 10px var(--text-muted);
-            transition: background 0.3s, box-shadow 0.3s;
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
         }
 
-        .status-badge.connected .dot {
+        .connected .status-indicator {
             background: var(--success);
-            box-shadow: 0 0 12px var(--success);
+            box-shadow: 0 0 0 4px rgba(0, 255, 136, 0.2), 0 0 12px var(--success);
         }
 
-        .status-badge.connecting .dot {
-            background: #f59e0b;
-            box-shadow: 0 0 12px #f59e0b;
+        .connecting .status-indicator {
+            background: var(--warning);
+            box-shadow: 0 0 0 4px rgba(255, 184, 0, 0.2);
             animation: pulse 1.5s infinite;
-        }
-
-        .status-badge.disconnected .dot {
-            background: var(--danger);
-            box-shadow: 0 0 12px var(--danger);
         }
 
         @keyframes pulse {
@@ -153,8 +174,8 @@
             }
 
             50% {
-                transform: scale(1.5);
-                opacity: 0.5;
+                transform: scale(1.2);
+                opacity: 0.7;
             }
 
             100% {
@@ -163,49 +184,70 @@
             }
         }
 
+        /* Buttons */
         .btn {
-            appearance: none;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: #000;
             border: none;
-            background: linear-gradient(135deg, #38bdf8, #2563eb);
-            color: white;
-            font-size: 16px;
-            font-weight: 600;
-            padding: 14px 28px;
+            padding: 14px 24px;
             border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
             cursor: pointer;
             width: 100%;
-            transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
-            box-shadow: 0 10px 20px -10px rgba(56, 189, 248, 0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 15px 25px -10px rgba(56, 189, 248, 0.7);
+            box-shadow: 0 8px 20px rgba(79, 172, 254, 0.3);
         }
 
         .btn:active {
             transform: translateY(0);
         }
 
-        .btn-disconnect {
-            background: linear-gradient(135deg, #f43f5e, #be123c);
-            box-shadow: 0 10px 20px -10px rgba(244, 63, 94, 0.5);
-            display: none;
+        .btn-danger {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
         }
 
-        .btn-disconnect:hover {
-            box-shadow: 0 15px 25px -10px rgba(244, 63, 94, 0.7);
+        .btn-danger:hover {
+            background: rgba(255, 75, 75, 0.1);
+            box-shadow: 0 8px 20px rgba(255, 75, 75, 0.2);
+        }
+
+        .btn.loading {
+            pointer-events: none;
+            opacity: 0.8;
         }
 
         .loader {
             display: none;
-            width: 24px;
-            height: 24px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            border-top-color: #000;
             border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            margin: 0 auto;
+            animation: spin 1s linear infinite;
+        }
+
+        .btn-danger .loader {
+            border-color: rgba(255, 75, 75, 0.2);
+            border-top-color: var(--danger);
+        }
+
+        .btn.loading .loader {
+            display: block;
+        }
+
+        .btn.loading span {
+            display: none;
         }
 
         @keyframes spin {
@@ -214,188 +256,227 @@
             }
         }
 
-        .btn.loading .btn-text {
-            display: none;
+        /* Proxies Section */
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .btn.loading .loader {
-            display: block;
+        .section-title svg {
+            width: 20px;
+            height: 20px;
+            color: var(--accent-secondary);
         }
 
-        .btn:disabled,
-        .btn.loading {
-            pointer-events: none;
-            opacity: 0.8;
+        .proxy-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
-        .proxy-section {
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid var(--glass-border);
-            text-align: left;
+        .proxy-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
         }
 
-        .proxy-section h3 {
+        .proxy-card:hover {
+            background: var(--glass-bg-hover);
+        }
+
+        .proxy-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow: hidden;
+        }
+
+        .proxy-port {
             font-size: 16px;
             font-weight: 600;
             color: var(--text-main);
-            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .proxy-form {
+        .proxy-port::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        .proxy-target {
+            font-size: 13px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .proxy-actions {
             display: flex;
             gap: 8px;
-            margin-bottom: 16px;
         }
 
-        .proxy-form input {
-            background: rgba(0, 0, 0, 0.2);
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--glass-border);
-            color: var(--text-main);
-            padding: 10px 12px;
+            color: var(--text-muted);
+            width: 32px;
+            height: 32px;
             border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .icon-btn.delete:hover {
+            color: var(--danger);
+            border-color: rgba(255, 75, 75, 0.3);
+            background: rgba(255, 75, 75, 0.1);
+        }
+
+        /* Add Proxy Form */
+        .add-proxy-form {
+            display: grid;
+            grid-template-columns: 80px 1fr auto;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .input-glass {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            padding: 10px;
             font-size: 14px;
             outline: none;
-            transition: border-color 0.2s;
-        }
-        
-        .proxy-form input:focus {
-            border-color: var(--accent);
-        }
-        
-        #proxyPort {
-            width: 80px;
+            border-radius: 8px;
+            transition: background 0.2s;
         }
 
-        #proxyTarget {
-            flex-grow: 1;
-            min-width: 0;
+        .input-glass:focus {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .input-glass::placeholder {
+            color: #4a5568;
         }
 
         .btn-small {
             padding: 10px 16px;
             font-size: 14px;
+            border-radius: 8px;
             width: auto;
         }
 
-        .proxy-list {
-            list-style: none;
-            max-height: 150px;
-            overflow-y: auto;
-        }
+        /* Mobile Adjustments */
+        @media (max-width: 480px) {
+            .add-proxy-form {
+                grid-template-columns: 1fr;
+            }
 
-        .proxy-list::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .proxy-list::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-        }
-
-        .proxy-list li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.03);
-            padding: 10px 12px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 14px;
-        }
-
-        .proxy-list li span {
-            flex-grow: 1;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-right: 12px;
-        }
-        
-        .proxy-actions {
-            display: flex;
-            gap: 4px;
-        }
-
-        .btn-edit {
-            background: rgba(56, 189, 248, 0.2);
-            color: var(--accent);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .btn-edit:hover {
-            background: rgba(56, 189, 248, 0.4);
-            border-color: rgba(56, 189, 248, 0.5);
-        }
-
-        .btn-delete {
-            background: rgba(244, 63, 94, 0.2);
-            color: var(--danger);
-            border: 1px solid rgba(244, 63, 94, 0.3);
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        
-        .btn-delete:hover {
-            background: rgba(244, 63, 94, 0.4);
-            border-color: rgba(244, 63, 94, 0.5);
+            .add-proxy-form .btn-small {
+                width: 100%;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
 
-    <div class="container" id="app">
+    <div class="ambient-glow"></div>
+    <div class="ambient-glow right"></div>
+
+    <div class="app-container">
         <div class="header">
-            <h1>GOpenVPN</h1>
-            <p>SSO Authentication Gateway</p>
+            <h1>GopenVPN</h1>
+            <p>Secure Gateway</p>
         </div>
 
-        <div class="status-badge disconnected" id="statusBadge">
-            <div class="dot"></div>
-            <span id="statusText">Disconnected</span>
-        </div>
-
-        <button class="btn" id="btnConnect" onclick="startVPN()">
-            <span class="btn-text">Connect</span>
-            <div class="loader"></div>
-        </button>
-
-        <button class="btn btn-disconnect" id="btnDisconnect" onclick="stopVPN()">
-            <span class="btn-text">Disconnect</span>
-            <div class="loader"></div>
-        </button>
-
-        <div class="proxy-section">
-            <h3>Port Forwarding</h3>
-            <div class="proxy-form">
-                <input type="number" id="proxyPort" placeholder="Port" min="1" max="65535">
-                <input type="text" id="proxyTarget" placeholder="Target URL (e.g. http://server)">
-                <button class="btn btn-small" onclick="addProxy()">Save</button>
+        <div class="glass-card status-card" id="statusCard">
+            <div class="status-header">
+                <div class="status-indicator"></div>
+                <span id="statusText">Disconnected</span>
             </div>
-            <ul class="proxy-list" id="proxyList">
-                <li style="color: var(--text-muted); justify-content: center;">Loading proxies...</li>
-            </ul>
+
+            <button class="btn" id="btnConnect" onclick="startVPN()">
+                <span>Connect VPN</span>
+                <div class="loader"></div>
+            </button>
+
+            <a class="btn" id="btnAuth" target="_blank"
+                style="display: none; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; text-decoration: none;">
+                <span>Authenticate</span>
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                </svg>
+            </a>
+
+            <button class="btn btn-danger" id="btnDisconnect" onclick="stopVPN()" style="display: none;">
+                <span>Disconnect</span>
+                <div class="loader"></div>
+            </button>
+        </div>
+
+        <div class="glass-card">
+            <h3 class="section-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                </svg>
+                Port Forwarding
+            </h3>
+
+            <div class="proxy-list" id="proxyList">
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">Loading...</div>
+            </div>
+
+            <div class="add-proxy-form">
+                <input type="number" id="proxyPort" class="input-glass" placeholder="Port" min="1" max="65535">
+                <input type="text" id="proxyTarget" class="input-glass" placeholder="Target URL (e.g. localhost:3000)">
+                <button class="btn btn-small" onclick="addProxy()">
+                    <svg style="width:16px;height:16px;margin-right:4px;" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <span id="btnSubmitText">Add</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
         const btnConnect = document.getElementById('btnConnect');
         const btnDisconnect = document.getElementById('btnDisconnect');
-        const statusBadge = document.getElementById('statusBadge');
+        const btnAuth = document.getElementById('btnAuth');
+        const statusCard = document.getElementById('statusCard');
         const statusText = document.getElementById('statusText');
 
         setInterval(updateStatus, 2000);
@@ -404,10 +485,9 @@
             try {
                 const res = await fetch('/api/status');
                 const data = await res.json();
-
                 if (data.connected) {
                     setUIState('connected');
-                } else if (statusBadge.classList.contains('connected')) {
+                } else if (statusCard.classList.contains('connected')) {
                     setUIState('disconnected');
                 }
             } catch (e) {
@@ -415,36 +495,35 @@
             }
         }
 
-        function setUIState(state) {
-            statusBadge.className = `status-badge ${state}`;
+        function setUIState(state, authUrl = null) {
+            statusCard.className = `glass-card status-card ${state}`;
             btnConnect.classList.remove('loading');
             btnDisconnect.classList.remove('loading');
 
+            btnConnect.style.display = 'none';
+            btnDisconnect.style.display = 'none';
+            btnAuth.style.display = 'none';
+
             if (state === 'connected') {
-                statusText.innerText = 'Connected (tun0 Active)';
-                btnConnect.style.display = 'none';
-                btnConnect.disabled = true;
-                btnDisconnect.style.display = 'block';
-                btnDisconnect.disabled = false;
-                document.getElementById('app').style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                statusText.innerText = 'VPN Connected';
+                btnDisconnect.style.display = 'flex';
             } else if (state === 'connecting') {
-                statusText.innerText = 'Waiting for Authentication...';
-                btnConnect.style.display = 'block';
+                statusText.innerText = 'Starting...';
+                btnConnect.style.display = 'flex';
                 btnConnect.classList.add('loading');
-                btnConnect.disabled = true;
-                btnDisconnect.style.display = 'none';
-                document.getElementById('app').style.borderColor = 'rgba(245, 158, 11, 0.4)';
+            } else if (state === 'auth_required') {
+                statusText.innerText = 'Authentication Required';
+                btnAuth.href = authUrl;
+                btnAuth.style.display = 'flex';
+                statusCard.className = `glass-card status-card connecting`;
             } else {
                 statusText.innerText = 'Disconnected';
-                btnConnect.style.display = 'block';
-                btnConnect.disabled = false;
-                btnDisconnect.style.display = 'none';
-                document.getElementById('app').style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                btnConnect.style.display = 'flex';
             }
         }
 
         async function startVPN() {
-            if (btnConnect.disabled || btnConnect.classList.contains('loading')) return;
+            if (btnConnect.classList.contains('loading')) return;
             setUIState('connecting');
 
             try {
@@ -452,7 +531,7 @@
                 const data = await res.json();
 
                 if (data.url) {
-                    window.open(data.url, '_blank');
+                    setUIState('auth_required', data.url);
                 } else if (data.status === 'connected') {
                     setUIState('connected');
                 } else {
@@ -466,15 +545,11 @@
         }
 
         async function stopVPN() {
-            if (btnDisconnect.disabled || btnDisconnect.classList.contains('loading')) return;
+            if (btnDisconnect.classList.contains('loading')) return;
             btnDisconnect.classList.add('loading');
-            btnDisconnect.disabled = true;
             try {
                 await fetch('/api/stop', { method: 'POST' });
-            } catch (e) {
-                btnDisconnect.classList.remove('loading');
-                btnDisconnect.disabled = false;
-            }
+            } catch (e) { }
         }
 
         async function fetchProxies() {
@@ -483,22 +558,30 @@
                 const rules = await res.json();
                 const list = document.getElementById('proxyList');
                 list.innerHTML = '';
+
                 if (rules && rules.length > 0) {
                     rules.forEach(rule => {
-                        const li = document.createElement('li');
-                        li.innerHTML = `<span><b>${rule.port}</b> ➞ ${rule.target}</span>
-                        <div class="proxy-actions">
-                            <button class="btn-edit" onclick="editProxy(${rule.port}, '${rule.target}')">Edit</button>
-                            <button class="btn-delete" onclick="deleteProxy(${rule.port})">Delete</button>
-                        </div>`;
-                        list.appendChild(li);
+                        list.innerHTML += `
+                            <div class="proxy-card">
+                                <div class="proxy-info">
+                                    <div class="proxy-port">Port ${rule.port}</div>
+                                    <div class="proxy-target">${rule.target}</div>
+                                </div>
+                                <div class="proxy-actions">
+                                    <button class="icon-btn" onclick="editProxy(${rule.port}, '${rule.target}')" title="Edit">
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                    </button>
+                                    <button class="icon-btn delete" onclick="deleteProxy(${rule.port})" title="Delete">
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
                     });
                 } else {
-                    list.innerHTML = '<li style="color: var(--text-muted); justify-content: center;">No proxies configured</li>';
+                    list.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No forwarded ports active</div>';
                 }
-            } catch (e) {
-                console.error("Error fetching proxies", e);
-            }
+            } catch (e) { }
         }
 
         async function addProxy() {
@@ -511,7 +594,6 @@
                 alert("Please provide both port and target URL.");
                 return;
             }
-            
             if (!target.startsWith('http://') && !target.startsWith('https://')) {
                 target = 'http://' + target;
             }
@@ -526,6 +608,7 @@
                 if (res.ok) {
                     portInput.value = '';
                     targetInput.value = '';
+                    document.getElementById('btnSubmitText').innerText = 'Add';
                     fetchProxies();
                 } else {
                     const err = await res.text();
@@ -539,20 +622,15 @@
         function editProxy(port, target) {
             document.getElementById('proxyPort').value = port;
             document.getElementById('proxyTarget').value = target;
+            document.getElementById('btnSubmitText').innerText = 'Save';
             document.getElementById('proxyTarget').focus();
         }
 
         async function deleteProxy(port) {
             try {
-                const res = await fetch(`/api/proxies?port=${port}`, { method: 'DELETE' });
-                if (res.ok) {
-                    fetchProxies();
-                } else {
-                    alert("Error deleting proxy.");
-                }
-            } catch (e) {
-                alert("Error connecting to server.");
-            }
+                const res = await fetch('/api/proxies?port=' + port, { method: 'DELETE' });
+                if (res.ok) fetchProxies();
+            } catch (e) { }
         }
 
         updateStatus();

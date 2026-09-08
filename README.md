@@ -93,9 +93,8 @@ If you are deploying your applications alongside the VPN, you can use `network_m
 
 ```yaml
 services:
-  # 1. The base VPN service
   gopenvpn:
-    build: .
+    image: ghcr.io/juliorm0/gopenvpn:latest
     container_name: gopenvpn
     cap_add:
       - NET_ADMIN
@@ -105,24 +104,27 @@ services:
     tty: true
     ports:
       - "8081:80"
-      # Expose any ports you are forwarding here:
-      # - "8082:8082" 
     environment:
       - OPENVPN_PROFILE=${OPENVPN_PROFILE}
     volumes:
-      - ./data:/data # Persist proxy rules
+      - ./data:/data
+```
 
-  # 2. Your application that needs to use the VPN
-  my_internal_app:
+**Note:** If you need to forward ports from the internal network to your host machine, you must declare them in the `ports` section of `gopenvpn` (e.g., `- "8082:8082"`).
+
+### Example of an application attached to network
+
+```yml
+services:
+  internal_app:
     image: curlimages/curl
     container_name: internal_app
-    # THIS IS THE KEY LINE:
+    # The key line
     network_mode: "service:gopenvpn"
-    
-    # Important: Since it shares the network stack with the VPN, 
-    # the application CANNOT expose ports on its own.
-    # If 'my_internal_app' needs to expose port 3000, 
-    # you must declare it in the 'ports' section of 'gopenvpn'.
+    # Since it shares the network stack with gopenvpn,
+    # the application cannot expose ports on its own
+    # If 'internal_app' needs to expose port 3000,
+    # you must declare it in the 'ports' section of 'gopenvpn'
     command: ["sleep", "infinity"]
 ```
 
