@@ -4,6 +4,12 @@
 
 It is the ideal solution for integrating enterprise VPN connections (like OpenVPN CloudConnexa) with modern access tools like **Warpgate**, eliminating the friction of using terminal clients.
 
+<p align="center">
+  <img src="screenshots/gopenvpn-disconected.png" alt="Disconnected" width="250"/>
+  <img src="screenshots/gopenvpn-authenticate.png" alt="Authenticate" width="250"/>
+  <img src="screenshots/gopenvpn-connected.png" alt="Connected" width="250"/>
+</p>
+
 ---
 
 ## 📑 Table of Contents
