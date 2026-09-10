@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"embed"
 	"crypto/tls"
+	"embed"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -205,18 +205,18 @@ func startProxyServer(rule ProxyRule) error {
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
-	
+
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		originalDirector(req)
-		
+
 		req.Header.Set("X-Original-Host", req.Host)
 		req.Host = targetURL.Host
 
 		// Prevent leaking Docker's internal network IP to the backend
 		req.Header.Del("X-Real-IP")
 		req.Header["X-Forwarded-For"] = nil
-		
+
 		scheme := "http"
 		if req.TLS != nil {
 			scheme = "https"
@@ -299,8 +299,8 @@ func addProxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if rule.Port <= 0 || rule.Target == "" {
-		http.Error(w, "Invalid port or target", http.StatusBadRequest)
+	if rule.Port < 1024 || rule.Target == "" {
+		http.Error(w, "Invalid port (must be >= 1024) or missing target", http.StatusBadRequest)
 		return
 	}
 
@@ -383,7 +383,10 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "80"
+		port = "8080"
+	}
+	if p, err := strconv.Atoi(port); err == nil && p < 1024 {
+		log.Fatalf("Invalid PORT %s: cannot use privileged ports (< 1024) for security reasons", port)
 	}
 
 	http.HandleFunc("/api/start", startHandler)
