@@ -65,15 +65,15 @@ func initVPN() error {
 
 func startSystemServices() {
 	if _, err := os.Stat("/dev/net/tun"); os.IsNotExist(err) {
-		os.MkdirAll("/dev/net", 0755)
-		exec.Command("mknod", "/dev/net/tun", "c", "10", "200").Run()
+		exec.Command("sudo", "mkdir", "-p", "/dev/net").Run()
+		exec.Command("sudo", "mknod", "/dev/net/tun", "c", "10", "200").Run()
 	}
 
-	exec.Command("mkdir", "-p", "/run/dbus").Run()
-	exec.Command("rm", "-f", "/run/dbus/pid").Run()
-	exec.Command("dbus-uuidgen", "--ensure").Run()
+	exec.Command("sudo", "mkdir", "-p", "/run/dbus").Run()
+	exec.Command("sudo", "rm", "-f", "/run/dbus/pid").Run()
+	exec.Command("sudo", "dbus-uuidgen", "--ensure").Run()
 
-	cmd := exec.Command("dbus-daemon", "--system", "--fork")
+	cmd := exec.Command("sudo", "dbus-daemon", "--system", "--fork")
 	if err := cmd.Run(); err != nil {
 		log.Println("Warning: dbus-daemon returned error:", err)
 	} else {
@@ -94,7 +94,7 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Starting OpenVPN 3 session...")
 
-	cmd := exec.Command("openvpn3", "session-start", "--config", configPath)
+	cmd := exec.Command("sudo", "openvpn3", "session-start", "--config", configPath)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
@@ -108,7 +108,7 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(1 * time.Second)
 		}
 		log.Println("tun0 detected, attaching log viewer...")
-		logCmd := exec.Command("openvpn3", "log", "--config", configPath)
+		logCmd := exec.Command("sudo", "openvpn3", "log", "--config", configPath)
 		logCmd.Stdout = os.Stdout
 		logCmd.Stderr = os.Stderr
 		logCmd.Run()
@@ -141,7 +141,7 @@ func stopHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("Disconnecting OpenVPN 3 session...")
-	cmd := exec.Command("openvpn3", "session-manage", "--disconnect", "--config", configPath)
+	cmd := exec.Command("sudo", "openvpn3", "session-manage", "--disconnect", "--config", configPath)
 	cmd.Run()
 	log.Println("Session disconnected.")
 
