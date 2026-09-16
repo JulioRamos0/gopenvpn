@@ -13,8 +13,10 @@ services:
       - "8082:8082"
       - "8083:8083"
       - "8084:8084"
+      - "17000:17000"
     environment:
       - OPENVPN_PROFILE=${OPENVPN_PROFILE}
+      - AWS_CREDENTIALS=${AWS_CREDENTIALS}
     dns:
       - ${VPN_DNS}
       - 8.8.8.8

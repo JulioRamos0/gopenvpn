@@ -19,6 +19,8 @@ It is the ideal solution for integrating enterprise VPN connections (like OpenVP
   - [1. Prepare Environment Variables](#1-prepare-environment-variables)
   - [2. Build and Start](#2-build-and-start)
   - [3. SSO Connection (Warpgate Flow)](#3-sso-connection-warpgate-flow)
+  - [4. Port Forwarding (Proxies)](#4-port-forwarding-proxies)
+  - [5. Port Forwarding (Tunnels)](#5-port-forwarding-tunnels)
 - [⚙️ Internal API Endpoints](#️-internal-api-endpoints)
 - [🔗 Sharing the VPN Connection (Sidecar Mode)](#-sharing-the-vpn-connection-sidecar-mode)
   - [Option 1: In the same docker-compose.yml](#option-1-in-the-same-docker-composeyml-recommended)
@@ -31,9 +33,9 @@ It is the ideal solution for integrating enterprise VPN connections (like OpenVP
 
 The project is designed under a microservice architecture with a highly optimized Docker container:
 
-1. **Backend (Go 1.21)**: An embedded server that interacts directly with the DBus daemon and OpenVPN 3. It automates profile decoding, launches the `session-start` command, intercepts the web authentication URL (SSO) on standard output, and monitors the virtual network interface (`tun0`).
+1. **Backend (Go)**: An embedded server that interacts directly with the DBus daemon and OpenVPN 3. It automates profile decoding, launches the `session-start` command, intercepts the web authentication URL (SSO) on standard output, and monitors the virtual network interface (`tun0`).
 2. **Frontend (HTML/CSS)**: A modern web interface with a *Glassmorphism* design, dark mode, and fluid animations. It is embedded directly within the Go binary (`//go:embed`), so it does not require external static files.
-3. **Multi-Stage Docker**: The `Dockerfile` uses a two-stage build process. First, it compiles the Go binary, and then injects it into an `ubuntu:22.04` image. Strict `apt` optimizations are included to achieve a highly compatible final image with required polkit and dbus dependencies.
+3. **Multi-Stage Docker**: The `Dockerfile` uses a two-stage build process. First, it compiles the Go binary, and then injects it into an `ubuntu:22.04` image. Strict `apt` optimizations are included to achieve a highly compatible final image with required polkit, dbus, AWS CLI, and SSH dependencies.
 
 ---
 
@@ -50,6 +52,8 @@ cat profile.ovpn | base64 -w 0
 Create a `.env` file in the root of the project and paste the string:
 ```env
 OPENVPN_PROFILE=yOuR_bAsE64_sTrInG_hErE...
+# Required only if you are using AWS SSM Tunnels
+AWS_CREDENTIALS=bAsE64_oF_yoUr_aWs_cReDeNtiAls_fILe...
 ```
 
 ### 2. Build and Start
@@ -61,7 +65,7 @@ docker-compose up -d
 
 ### 3. SSO Connection (Warpgate Flow)
 1. Navigate to `http://localhost:8080` (or the port you have configured in Warpgate).
-2. Click on **Conectar a la VPN** (Connect to VPN).
+2. Click on **Connect VPN**.
 3. The frontend will communicate with the Go backend, which will start OpenVPN 3 and retrieve the login URL.
 4. A new tab (`target="_blank"`) will automatically open to your VPN provider's portal.
 5. Once you successfully log in using your browser, close that tab.
@@ -73,6 +77,14 @@ GopenVPN includes a built-in reverse proxy (accessible from the UI) that allows 
 - For the rules to survive a container restart, you **must** mount the `/data` folder to your host (see docker-compose examples below).
 - The reverse proxy automatically supports WebSockets.
 
+### 5. Port Forwarding (Tunnels)
+GopenVPN now includes a built-in Tunnel Manager that enables outbound port forwarding via SSH or AWS Systems Manager (SSM). This allows you to securely access private resources (like databases or Redis) within the VPN network or AWS VPCs using the established connection.
+- Define your Tunnels visually via the new Tunnels Tab in the UI.
+- Tunnels support traditional SSH or AWS SSM.
+- Tunnels config is persisted in `/data/tunnels.json`.
+- *Note:* To use AWS SSM, provide your base64-encoded `~/.aws/credentials` file as the `AWS_CREDENTIALS` environment variable. 
+- *Note:* To use SSH Tunnels with private keys, simply place your key files inside the `./data/ssh_keys/` directory on your host and specify the filename in the UI. 
+
 ---
 
 ## ⚙️ Internal API Endpoints
@@ -83,7 +95,9 @@ The frontend interacts with the following endpoints exposed by the Go binary:
 - `POST /api/start`: Initializes DBus, decodes the profile, runs `openvpn3 session-start`, and returns a JSON with the SSO `url` to open.
 - `POST /api/stop`: Runs `openvpn3 session-manage --disconnect` to terminate the tunnel.
 - `GET /api/status`: Validates at the OS level if the `tun0` interface exists, returning a boolean `{ "connected": true/false }`.
-- `GET`, `POST`, `DELETE /api/proxies`: Manage proxy rules dynamically.
+- `GET`, `POST`, `DELETE /api/proxies`: Manage local reverse proxy rules dynamically.
+- `GET`, `POST`, `PUT`, `DELETE /api/tunnels`: Manage definitions for outbound SSH/AWS SSM Tunnels.
+- `POST /api/tunnels/:id/start`, `POST /api/tunnels/:id/stop`: Control the lifecycle of outbound tunnels.
 
 ---
 
@@ -112,6 +126,7 @@ services:
       - "8081:80"
     environment:
       - OPENVPN_PROFILE=${OPENVPN_PROFILE}
+      - AWS_CREDENTIALS=${AWS_CREDENTIALS}
     volumes:
       - ./data:/data
 ```
@@ -146,5 +161,5 @@ docker run --rm -it --network container:gopenvpn curlimages/curl https://ifconfi
 ### ⚠️ Important rules about `network_mode`
 
 1. **Shared Ports:** When a container uses the network of another, **it loses the ability to use the `ports` directive**. All ports required by the child container must be published in the parent container (`gopenvpn`).
-2. **Localhost:** Both containers share the same network interface (and the same `localhost`). The child container can communicate with the VPN WebApp by making requests directly to `http://localhost:80`.
+2. **Localhost:** Both containers share the same network interface (and the same `localhost`). The child container can communicate with the VPN Web UI by making requests directly to `http://localhost:80`.
 3. **Dependencies:** The VPN container must start *before* the containers that depend on it. It is recommended to use `depends_on: gopenvpn` in your `docker-compose.yml`.

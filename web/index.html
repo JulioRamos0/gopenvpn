@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOpenVPN Gateway</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="ambient-glow"></div>
+    <div class="ambient-glow right"></div>
+
+    <div class="app-container">
+        <div class="header">
+            <h1>GOpenVPN</h1>
+            <p>Secure Gateway</p>
+        </div>
+
+        <div class="glass-card status-card" id="statusCard">
+            <div class="status-header">
+                <div class="status-indicator"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+
+            <button class="btn" id="btnConnect" onclick="startVPN()">
+                <span>Connect VPN</span>
+                <div class="loader"></div>
+            </button>
+
+            <a class="btn" id="btnAuth" target="_blank"
+                style="display: none; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; text-decoration: none;">
+                <span>Authenticate</span>
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                </svg>
+            </a>
+
+            <button class="btn btn-danger" id="btnDisconnect" onclick="stopVPN()" style="display: none;">
+                <span>Disconnect</span>
+                <div class="loader"></div>
+            </button>
+        </div>
+
+        <!-- TABS NAV -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('proxies')">Proxies</button>
+            <button class="tab-btn" onclick="switchTab('tunnels')">Tunnels</button>
+        </div>
+
+        <!-- PROXIES VIEW -->
+        <div id="tab-proxies" class="glass-card tab-content active">
+            <div class="section-title">
+                <div class="section-title-left">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                    Port Forwarding
+                </div>
+            </div>
+
+            <div class="proxy-list" id="proxyList">
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">Loading...</div>
+            </div>
+
+            <div class="add-proxy-form">
+                <input type="number" id="proxyPort" class="input-glass" placeholder="Port" min="1" max="65535">
+                <input type="text" id="proxyTarget" class="input-glass" placeholder="Target URL (e.g. localhost:3000)">
+                <button class="btn btn-small" onclick="addProxy()">
+                    <svg style="width:16px;height:16px;margin-right:4px;" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <span id="btnSubmitText">Add</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- TUNNELS VIEW -->
+        <div id="tab-tunnels" class="glass-card tab-content">
+            <div class="section-title">
+                <div class="section-title-left">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1">
+                        </path>
+                    </svg>
+                    AWS & SSH Tunnels
+                </div>
+                <button class="btn btn-small" style="padding: 6px 12px; font-size: 13px;" onclick="openTunnelModal()">+
+                    New</button>
+            </div>
+
+            <div class="proxy-list" id="tunnelList">
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TUNNEL MODAL -->
+    <div class="modal-overlay" id="tunnelModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span id="modalTitle">Add Tunnel</span>
+                <button class="modal-close" onclick="closeTunnelModal()">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="tunnelForm" onsubmit="saveTunnel(event)">
+                <input type="hidden" id="tunnelId">
+                <div class="form-group">
+                    <label>Name / Identifier</label>
+                    <input type="text" id="tunName" class="input-glass" placeholder="e.g. Database RDS" required>
+                </div>
+                <div class="form-group">
+                    <label>Tunnel Type</label>
+                    <select id="tunType" onchange="toggleTunnelFields()" required>
+                        <option value="aws-ssm">AWS SSM Session</option>
+                        <option value="ssh">SSH Normal</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Remote Port</label>
+                        <input type="number" id="tunRemotePort" class="input-glass" placeholder="5432" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Local Port</label>
+                        <input type="number" id="tunLocalPort" class="input-glass" placeholder="15432" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Remote Host / IP</label>
+                    <input type="text" id="tunRemoteHost" class="input-glass" placeholder="e.g. db.corp.aws.internal"
+                        required>
+                </div>
+
+                <!-- Dynamic SSM Fields -->
+                <div id="fields-aws-ssm" class="dynamic-fields show">
+                    <div class="form-group">
+                        <label>AWS Profile <span style="font-weight:400">(leave blank for default)</span></label>
+                        <input type="text" id="tunAwsProfile" class="input-glass" placeholder="default">
+                    </div>
+                    <div class="form-group">
+                        <label>Target Tag Filter (Key=Value)</label>
+                        <input type="text" id="tunTargetTags" class="input-glass" placeholder="Name=*tunnel*">
+                    </div>
+                </div>
+
+                <!-- Dynamic SSH Fields -->
+                <div id="fields-ssh" class="dynamic-fields">
+                    <div class="form-group">
+                        <label>Jump Host</label>
+                        <input type="text" id="tunJumpHost" class="input-glass" placeholder="bastion.corp.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Jump User</label>
+                        <input type="text" id="tunJumpUser" class="input-glass" placeholder="ec2-user">
+                    </div>
+                    <div class="form-group">
+                        <label>SSH Key Filename <span style="font-weight:400">(optional)</span></label>
+                        <input type="text" id="tunSSHKey" class="input-glass" placeholder="e.g. dev_key.pem">
+                    </div>
+                </div>
+
+                <div style="margin-top: 24px;">
+                    <button type="submit" class="btn">Save Tunnel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
