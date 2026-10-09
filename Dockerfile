@@ -24,8 +24,8 @@ RUN apt-get update && apt-get install -y \
     dbus \
     sudo \
     && mkdir -p /etc/apt/keyrings \
-    && curl -fsSL https://swupdate.openvpn.net/repos/openvpn-repo-pkg-key.pub | gpg --dearmor > /etc/apt/keyrings/openvpn.gpg \
-    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/openvpn.gpg] https://swupdate.openvpn.net/community/openvpn3/repos jammy main" > /etc/apt/sources.list.d/openvpn3.list \
+    && curl -fsSL https://packages.openvpn.net/packages-repo.gpg > /etc/apt/keyrings/openvpn.asc \
+    && echo "deb [signed-by=/etc/apt/keyrings/openvpn.asc] https://packages.openvpn.net/openvpn3/debian bookworm main" > /etc/apt/sources.list.d/openvpn3.list \
     && apt-get update \
     && apt-get install -y openvpn3 \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
