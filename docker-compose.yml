@@ -1,6 +1,9 @@
 services:
   gopenvpn:
-    build: .
+    build:
+      context: .
+      args:
+        - APP_VERSION=${APP_VERSION:-dev}
     container_name: gopenvpn
     restart: unless-stopped
     cap_add:

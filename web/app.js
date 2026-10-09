@@ -27,6 +27,10 @@ async function updateStatus() {
     try {
         const res = await fetch('/api/status');
         const data = await res.json();
+        if (data.version && document.getElementById('appVersion')) {
+            document.getElementById('appVersion').innerText = data.version;
+            document.getElementById('appVersion').style.display = 'inline-block';
+        }
         if (data.connected) {
             setUIState('connected');
         } else if (statusCard.classList.contains('connected')) {

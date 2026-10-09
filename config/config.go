@@ -6,6 +6,9 @@ import (
 	"strconv"
 )
 
+// Version is set at build time via -ldflags "-X gopenvpn/config.Version=..."
+var Version = "dev"
+
 type Config struct {
 	Port           int
 	OpenVPNProfile string

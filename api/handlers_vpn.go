@@ -62,6 +62,9 @@ func StatusHandler() http.HandlerFunc {
 		}
 
 		connected := vpn.IsTunActive()
-		json.NewEncoder(w).Encode(map[string]interface{}{"connected": connected})
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"connected": connected,
+			"version":   config.Version,
+		})
 	}
 }

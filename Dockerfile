@@ -4,8 +4,9 @@ FROM golang:1.26-bookworm AS builder
 WORKDIR /app
 COPY go.mod ./
 RUN go mod download || true
+ARG APP_VERSION=dev
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /gopenvpn ./cmd/server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-X gopenvpn/config.Version=${APP_VERSION}" -o /gopenvpn ./cmd/server/main.go
 
 # -- Stage 2: Final Image --
 FROM ubuntu:22.04
