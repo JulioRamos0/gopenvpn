@@ -3,7 +3,6 @@ package tunnel
 import (
 	"context"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -47,8 +46,23 @@ func setStatus(id, status string) {
 	}
 }
 
-// StartTunnel provisions necessary files (AWS creds) and launches the tunnel process.
-func StartTunnel(t Tunnel, awsCredsB64 string) error {
+// StartTunnel provisions necessary files and launches the tunnel process.
+func StartTunnel(t Tunnel) error {
+	// If it's an AWS SSM tunnel using SSO, check if authenticated first
+	if t.Type == TypeAWSSSM && t.IsSSO {
+		profile := strings.TrimSpace(t.AWSProfile)
+		if profile == "" {
+			profile = "default"
+		}
+		if err := EnsureAWSConfig(t); err != nil {
+			return fmt.Errorf("failed to prepare AWS SSO config: %v", err)
+		}
+		if !CheckSSOAuthenticated(profile) {
+			setStatus(t.ID, "needs_login")
+			return fmt.Errorf("AWS SSO authentication required for profile '%s'. Please authenticate first", profile)
+		}
+	}
+
 	managerMu.Lock()
 	defer managerMu.Unlock()
 
@@ -68,7 +82,7 @@ func StartTunnel(t Tunnel, awsCredsB64 string) error {
 		Status: "connecting",
 	}
 
-	go runTunnel(ctx, t, awsCredsB64)
+	go runTunnel(ctx, t)
 	return nil
 }
 
@@ -86,28 +100,32 @@ func StopTunnel(id string) error {
 }
 
 // runTunnel handles the actual OS execution and blocking.
-func runTunnel(ctx context.Context, t Tunnel, awsCredsB64 string) {
+func runTunnel(ctx context.Context, t Tunnel) {
 	var cmd *exec.Cmd
 
 	switch t.Type {
 	case TypeAWSSSM:
-		// Prepare AWS environment
-		credsPath, err := prepareAWSCredentials(awsCredsB64)
-		if err != nil {
-			setStatus(t.ID, fmt.Sprintf("error: credentials: %v", err))
-			return
-		}
-
 		profile := "default"
 		if t.AWSProfile != "" {
 			profile = t.AWSProfile
 		}
 
-		target, err := resolveAWSTarget(ctx, t.TargetTags, profile, credsPath)
-		if err != nil {
-			log.Printf("[Tunnel %s] %v", t.ID, err)
-			setStatus(t.ID, fmt.Sprintf("error: target resolution: %v", err))
+		// Ensure AWS configuration is up-to-date
+		if err := EnsureAWSConfig(t); err != nil {
+			log.Printf("[Tunnel %s] Error preparing AWS config: %v", t.ID, err)
+			setStatus(t.ID, fmt.Sprintf("error: aws config: %v", err))
 			return
+		}
+
+		target := strings.TrimSpace(t.Target)
+		if target == "" {
+			var err error
+			target, err = resolveAWSTarget(ctx, t.TargetTags, profile)
+			if err != nil {
+				log.Printf("[Tunnel %s] %v", t.ID, err)
+				setStatus(t.ID, fmt.Sprintf("error: target resolution: %v", err))
+				return
+			}
 		}
 		log.Printf("[Tunnel %s] Using AWS EC2 Instance %s for tunnel %s", t.ID, target, t.Name)
 
@@ -124,9 +142,6 @@ func runTunnel(ctx context.Context, t Tunnel, awsCredsB64 string) {
 			"--document-name", "AWS-StartPortForwardingSessionToRemoteHost",
 			"--parameters", params,
 		)
-
-		// Inject the dynamically decoded AWS_CREDENTIALS file
-		cmd.Env = append(os.Environ(), "AWS_SHARED_CREDENTIALS_FILE="+credsPath)
 
 		// Start TCP forwarder to expose 127.0.0.1 (SSM) to 0.0.0.0
 		go tcpForward(ctx, fmt.Sprintf("0.0.0.0:%d", t.LocalPort), fmt.Sprintf("127.0.0.1:%d", ssmPort))
@@ -177,26 +192,6 @@ func runTunnel(ctx context.Context, t Tunnel, awsCredsB64 string) {
 	}
 }
 
-// prepareAWSCredentials decodes AWS_CREDENTIALS base64 string into a temp file for the aws-cli to use.
-func prepareAWSCredentials(b64Creds string) (string, error) {
-	if b64Creds == "" {
-		// If empty, return empty path and let AWS CLI use its default auth chain
-		return "", nil
-	}
-
-	decoded, err := base64.StdEncoding.DecodeString(b64Creds)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode AWS_CREDENTIALS base64: %v", err)
-	}
-
-	tmpFile := filepath.Join(os.TempDir(), "gopenvpn_aws_credentials")
-	if err := os.WriteFile(tmpFile, decoded, 0600); err != nil {
-		return "", err
-	}
-
-	return tmpFile, nil
-}
-
 // prepareSSHPrivateKey reads the ssh key from /data/ssh_keys, and copies it to a temp file with 0600 permissions
 func prepareSSHKey(keyFilename string) (string, error) {
 	if keyFilename == "" {
@@ -221,7 +216,7 @@ func prepareSSHKey(keyFilename string) (string, error) {
 }
 
 // resolveAWSTarget uses the AWS CLI to find a running EC2 instance matching the provided tags.
-func resolveAWSTarget(ctx context.Context, tags map[string]string, profile, credsPath string) (string, error) {
+func resolveAWSTarget(ctx context.Context, tags map[string]string, profile string) (string, error) {
 	if len(tags) == 0 {
 		return "", fmt.Errorf("no target tags provided to find the SSM target")
 	}
@@ -239,7 +234,6 @@ func resolveAWSTarget(ctx context.Context, tags map[string]string, profile, cred
 	args = append(args, "--query", "Reservations[0].Instances[0].InstanceId", "--output", "text")
 
 	cmd := exec.CommandContext(ctx, "aws", args...)
-	cmd.Env = append(os.Environ(), "AWS_SHARED_CREDENTIALS_FILE="+credsPath)
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {

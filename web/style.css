@@ -45,7 +45,7 @@
 
         .app-container {
             width: 100%;
-            max-width: 480px;
+            max-width: 600px;
             display: flex;
             flex-direction: column;
             gap: 24px;
@@ -448,6 +448,84 @@
             color: var(--success);
             border-color: rgba(0, 255, 136, 0.3);
             background: rgba(0, 255, 136, 0.1);
+        }
+
+        .icon-btn.sso-auth {
+            width: auto;
+            min-height: 32px;
+            height: 32px;
+            padding: 0 12px;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #ff9900;
+            border-color: rgba(255, 153, 0, 0.4);
+            background: rgba(255, 153, 0, 0.12);
+        }
+
+        .icon-btn.sso-auth:hover {
+            color: #ffffff;
+            background: #ff9900;
+            border-color: #ff9900;
+            box-shadow: 0 0 10px rgba(255, 153, 0, 0.5);
+        }
+
+        .sso-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 6px;
+        }
+
+        .sso-badge.ok {
+            background: rgba(0, 255, 136, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .sso-badge.expired {
+            background: rgba(255, 153, 0, 0.15);
+            color: #ff9900;
+            border: 1px solid rgba(255, 153, 0, 0.3);
+        }
+
+        .sso-auth-box {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(255, 153, 0, 0.08);
+            border: 1px solid rgba(255, 153, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        .sso-auth-box a {
+            color: #ffb84d;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
+        .sso-code-badge {
+            display: inline-block;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            letter-spacing: 1px;
+            color: #ffffff;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            cursor: pointer;
         }
 
         /* Form elements */

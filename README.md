@@ -52,8 +52,6 @@ cat profile.ovpn | base64 -w 0
 Create a `.env` file in the root of the project and paste the string:
 ```env
 OPENVPN_PROFILE=yOuR_bAsE64_sTrInG_hErE...
-# Required only if you are using AWS SSM Tunnels
-AWS_CREDENTIALS=bAsE64_oF_yoUr_aWs_cReDeNtiAls_fILe...
 ```
 
 ### 2. Build and Start
@@ -82,7 +80,7 @@ GopenVPN now includes a built-in Tunnel Manager that enables outbound port forwa
 - Define your Tunnels visually via the new Tunnels Tab in the UI.
 - Tunnels support traditional SSH or AWS SSM.
 - Tunnels config is persisted in `/data/tunnels.json`.
-- *Note:* To use AWS SSM, provide your base64-encoded `~/.aws/credentials` file as the `AWS_CREDENTIALS` environment variable. 
+- *Note:* AWS SSM credentials and profiles (SSO / IAM) are managed and authenticated directly from the Web UI without needing environment variables. 
 - *Note:* To use SSH Tunnels with private keys, simply place your key files inside the `./data/ssh_keys/` directory on your host and specify the filename in the UI. 
 
 ---
@@ -126,7 +124,6 @@ services:
       - "8080:8080"
     environment:
       - OPENVPN_PROFILE=${OPENVPN_PROFILE}
-      - AWS_CREDENTIALS=${AWS_CREDENTIALS}
     volumes:
       - ./data:/data
 ```

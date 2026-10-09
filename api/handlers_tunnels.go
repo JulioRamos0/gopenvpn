@@ -55,16 +55,32 @@ func TunnelsHandler(cfg *config.Config) http.HandlerFunc {
 			if len(pathParts) == 4 {
 				// /api/tunnels/{id}/{action}
 				action := pathParts[3]
-				if r.Method != http.MethodPost {
-					http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-					return
-				}
 				
 				switch action {
 				case "start":
-					startTunnelHandler(w, r, id, cfg.AWSCredentials)
+					if r.Method != http.MethodPost {
+						http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+						return
+					}
+					startTunnelHandler(w, r, id)
 				case "stop":
+					if r.Method != http.MethodPost {
+						http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+						return
+					}
 					stopTunnelHandler(w, r, id)
+				case "sso-login":
+					if r.Method != http.MethodPost {
+						http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+						return
+					}
+					ssoLoginTunnelHandler(w, r, id)
+				case "sso-status":
+					if r.Method != http.MethodGet {
+						http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+						return
+					}
+					ssoStatusTunnelHandler(w, r, id)
 				default:
 					http.Error(w, "Action not found", http.StatusNotFound)
 				}
@@ -83,9 +99,29 @@ func getTunnelsHandler(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 
-	// Attach memory status to each tunnel
+	// Attach memory status and SSO validation to each tunnel
 	for i, t := range tunnels {
 		tunnels[i].Status = tunnel.GetStatus(t.ID)
+
+		if t.Type == tunnel.TypeAWSSSM && t.IsSSO {
+			profile := strings.TrimSpace(t.AWSProfile)
+			if profile == "" {
+				profile = "default"
+			}
+
+			// Check if active session in memory
+			if sess, exists := tunnel.GetSSOSession(t.ID); exists && !sess.Done {
+				tunnels[i].SSOAuthURL = sess.AuthURL
+				tunnels[i].SSOUserCode = sess.UserCode
+				tunnels[i].Status = "authenticating"
+			} else {
+				isAuth := tunnel.CheckSSOAuthenticated(profile)
+				tunnels[i].SSOAuthenticated = isAuth
+				if !isAuth && (tunnels[i].Status == "stopped" || tunnels[i].Status == "") {
+					tunnels[i].Status = "needs_login"
+				}
+			}
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -104,6 +140,14 @@ func addTunnelHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Ensure AWS config files are updated for the tunnel
+	if t.Type == tunnel.TypeAWSSSM {
+		if err := tunnel.EnsureAWSConfig(t); err != nil {
+			http.Error(w, "Failed to configure AWS settings: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
 	if err := tunnel.AddTunnel(t); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -117,6 +161,13 @@ func updateTunnelHandler(w http.ResponseWriter, r *http.Request, id string) {
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+
+	if t.Type == tunnel.TypeAWSSSM {
+		if err := tunnel.EnsureAWSConfig(t); err != nil {
+			http.Error(w, "Failed to configure AWS settings: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	if err := tunnel.UpdateTunnel(id, t); err != nil {
@@ -135,7 +186,7 @@ func deleteTunnelHandler(w http.ResponseWriter, _ *http.Request, id string) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func startTunnelHandler(w http.ResponseWriter, _ *http.Request, id string, awsCredsB64 string) {
+func startTunnelHandler(w http.ResponseWriter, _ *http.Request, id string) {
 	tunnels, err := tunnel.GetTunnels()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -144,7 +195,7 @@ func startTunnelHandler(w http.ResponseWriter, _ *http.Request, id string, awsCr
 
 	for _, t := range tunnels {
 		if t.ID == id {
-			if err := tunnel.StartTunnel(t, awsCredsB64); err != nil {
+			if err := tunnel.StartTunnel(t); err != nil {
 				http.Error(w, err.Error(), http.StatusConflict)
 				return
 			}
@@ -162,4 +213,63 @@ func stopTunnelHandler(w http.ResponseWriter, _ *http.Request, id string) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func ssoLoginTunnelHandler(w http.ResponseWriter, _ *http.Request, id string) {
+	tunnels, err := tunnel.GetTunnels()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	for _, t := range tunnels {
+		if t.ID == id {
+			sess, err := tunnel.StartSSOLogin(t)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(sess)
+			return
+		}
+	}
+
+	http.Error(w, "Tunnel not found", http.StatusNotFound)
+}
+
+func ssoStatusTunnelHandler(w http.ResponseWriter, _ *http.Request, id string) {
+	tunnels, err := tunnel.GetTunnels()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	for _, t := range tunnels {
+		if t.ID == id {
+			profile := strings.TrimSpace(t.AWSProfile)
+			if profile == "" {
+				profile = "default"
+			}
+
+			isAuth := tunnel.CheckSSOAuthenticated(profile)
+			resp := map[string]interface{}{
+				"authenticated": isAuth,
+			}
+
+			if sess, exists := tunnel.GetSSOSession(id); exists {
+				resp["auth_url"] = sess.AuthURL
+				resp["user_code"] = sess.UserCode
+				resp["done"] = sess.Done
+				resp["error"] = sess.Error
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(resp)
+			return
+		}
+	}
+
+	http.Error(w, "Tunnel not found", http.StatusNotFound)
 }

@@ -9,7 +9,6 @@ import (
 type Config struct {
 	Port           int
 	OpenVPNProfile string
-	AWSCredentials string
 }
 
 func LoadConfig() (*Config, error) {
@@ -35,6 +34,5 @@ func LoadConfig() (*Config, error) {
 	return &Config{
 		Port:           port,
 		OpenVPNProfile: profileB64,
-		AWSCredentials: os.Getenv("AWS_CREDENTIALS"),
 	}, nil
 }

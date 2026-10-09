@@ -114,67 +114,181 @@
                 </button>
             </div>
 
+            <!-- STEP INDICATORS -->
+            <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-bottom:20px;">
+                <div id="stepDot1" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--primary);">
+                    <span style="width:22px; height:22px; border-radius:50%; background:var(--primary); color:#000; display:inline-flex; align-items:center; justify-content:center; font-size:11px;">1</span>
+                    <span>Básico</span>
+                </div>
+                <div style="width:30px; height:2px; background:var(--border-color);" id="stepLine"></div>
+                <div id="stepDot2" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--text-muted);">
+                    <span style="width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,0.1); color:var(--text-muted); display:inline-flex; align-items:center; justify-content:center; font-size:11px;">2</span>
+                    <span>Conexión</span>
+                </div>
+            </div>
+
             <form id="tunnelForm" onsubmit="saveTunnel(event)">
                 <input type="hidden" id="tunnelId">
-                <div class="form-group">
-                    <label>Name / Identifier</label>
-                    <input type="text" id="tunName" class="input-glass" placeholder="e.g. Database RDS" required>
-                </div>
-                <div class="form-group">
-                    <label>Tunnel Type</label>
-                    <select id="tunType" onchange="toggleTunnelFields()" required>
-                        <option value="aws-ssm">AWS SSM Session</option>
-                        <option value="ssh">SSH Normal</option>
-                    </select>
-                </div>
 
-                <div style="display:flex; gap:12px;">
-                    <div class="form-group" style="flex:1;">
-                        <label>Remote Port</label>
-                        <input type="number" id="tunRemotePort" class="input-glass" placeholder="5432" required>
-                    </div>
-                    <div class="form-group" style="flex:1;">
-                        <label>Local Port</label>
-                        <input type="number" id="tunLocalPort" class="input-glass" placeholder="15432" required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Remote Host / IP</label>
-                    <input type="text" id="tunRemoteHost" class="input-glass" placeholder="e.g. db.corp.aws.internal"
-                        required>
-                </div>
-
-                <!-- Dynamic SSM Fields -->
-                <div id="fields-aws-ssm" class="dynamic-fields show">
+                <!-- ETAPA 1: DATOS BÁSICOS -->
+                <div id="wizardStep1">
                     <div class="form-group">
-                        <label>AWS Profile <span style="font-weight:400">(leave blank for default)</span></label>
-                        <input type="text" id="tunAwsProfile" class="input-glass" placeholder="default">
+                        <label>Nombre del Túnel / Identificador</label>
+                        <input type="text" id="tunName" class="input-glass" placeholder="ej. Database RDS" required>
                     </div>
+
+                    <div style="display:flex; gap:12px;">
+                        <div class="form-group" style="flex:1;">
+                            <label>Puerto Local</label>
+                            <input type="number" id="tunLocalPort" class="input-glass" placeholder="15432" required>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Puerto Remoto</label>
+                            <input type="number" id="tunRemotePort" class="input-glass" placeholder="5432" required>
+                        </div>
+                    </div>
+
                     <div class="form-group">
-                        <label>Target Tag Filter (Key=Value)</label>
-                        <input type="text" id="tunTargetTags" class="input-glass" placeholder="Name=*tunnel*">
+                        <label>Remote Host / IP Destino</label>
+                        <input type="text" id="tunRemoteHost" class="input-glass" placeholder="ej. db.corp.aws.internal" required>
+                    </div>
+
+                    <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                        <button type="button" class="btn" style="width:auto; padding:10px 24px;" onclick="goToStep(2)">
+                            Siguiente ➔
+                        </button>
                     </div>
                 </div>
 
-                <!-- Dynamic SSH Fields -->
-                <div id="fields-ssh" class="dynamic-fields">
+                <!-- ETAPA 2: TIPO Y CONFIGURACIÓN -->
+                <div id="wizardStep2" style="display:none;">
                     <div class="form-group">
-                        <label>Jump Host</label>
-                        <input type="text" id="tunJumpHost" class="input-glass" placeholder="bastion.corp.com">
+                        <label>Tipo de Conexión</label>
+                        <select id="tunType" onchange="toggleTunnelFields()" required>
+                            <option value="aws-ssm">AWS SSM Session</option>
+                            <option value="ssh">SSH Normal</option>
+                        </select>
                     </div>
-                    <div class="form-group">
-                        <label>Jump User</label>
-                        <input type="text" id="tunJumpUser" class="input-glass" placeholder="ec2-user">
-                    </div>
-                    <div class="form-group">
-                        <label>SSH Key Filename <span style="font-weight:400">(optional)</span></label>
-                        <input type="text" id="tunSSHKey" class="input-glass" placeholder="e.g. dev_key.pem">
-                    </div>
-                </div>
 
-                <div style="margin-top: 24px;">
-                    <button type="submit" class="btn">Save Tunnel</button>
+                    <!-- SUB-OPCIONES AWS SSM -->
+                    <div id="fields-aws-ssm" class="dynamic-fields show">
+                        <!-- Método de Target EC2 -->
+                        <div class="form-group">
+                            <label>Método para resolver Target EC2</label>
+                            <div style="display:flex; gap:12px; margin-top:4px;">
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+                                    <input type="radio" name="targetMethod" id="targetMethodId" value="id" onchange="toggleTargetMethod()" checked>
+                                    <span>Target ID directo</span>
+                                </label>
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+                                    <input type="radio" name="targetMethod" id="targetMethodTag" value="tag" onchange="toggleTargetMethod()">
+                                    <span>Filtro por Tags</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="groupTargetId">
+                            <label>EC2 Instance Target ID</label>
+                            <input type="text" id="tunTarget" class="input-glass" placeholder="i-0123456789abcdef0">
+                        </div>
+
+                        <div class="form-group" id="groupTargetTag" style="display:none;">
+                            <label>Tag Filter (Key=Value)</label>
+                            <input type="text" id="tunTargetTags" class="input-glass" placeholder="Name=*tunnel*">
+                        </div>
+
+                        <!-- Selector de Perfil AWS -->
+                        <div class="form-group" style="margin-top:12px;">
+                            <label>Perfil de AWS</label>
+                            <select id="tunAwsProfileSelect" onchange="onProfileSelectChange()">
+                                <option value="__NEW__">➕ Configurar un perfil nuevo...</option>
+                            </select>
+                        </div>
+
+                        <!-- Configuración de Perfil Nuevo -->
+                        <div id="boxNewProfile" style="background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:8px; padding:12px; margin-top:8px;">
+                            <div class="form-group">
+                                <label>Nombre del Nuevo Perfil</label>
+                                <input type="text" id="tunAwsProfile" class="input-glass" placeholder="ej. mi-empresa-dev">
+                            </div>
+
+                            <div class="form-group" style="margin-top:8px; margin-bottom:12px;">
+                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px;">
+                                    <input type="checkbox" id="tunIsSSO" onchange="toggleSSOFields()" checked style="width:16px; height:16px; accent-color:var(--primary); cursor:pointer;">
+                                    <span><strong>¿Es perfil de AWS SSO (IAM Identity Center)?</strong></span>
+                                </label>
+                            </div>
+
+                            <!-- Campos SSO -->
+                            <div id="fields-ssm-sso">
+                                <div class="form-group">
+                                    <label>SSO Start URL</label>
+                                    <input type="url" id="tunSSOStartURL" class="input-glass" placeholder="https://my-portal.awsapps.com/start">
+                                </div>
+                                <div style="display:flex; gap:12px;">
+                                    <div class="form-group" style="flex:1;">
+                                        <label>SSO Region</label>
+                                        <input type="text" id="tunSSORegion" class="input-glass" placeholder="us-east-1">
+                                    </div>
+                                    <div class="form-group" style="flex:1;">
+                                        <label>Destination Region</label>
+                                        <input type="text" id="tunRegionSSO" class="input-glass" placeholder="us-east-1">
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:12px;">
+                                    <div class="form-group" style="flex:1;">
+                                        <label>SSO Account ID</label>
+                                        <input type="text" id="tunSSOAccountID" class="input-glass" placeholder="123456789012">
+                                    </div>
+                                    <div class="form-group" style="flex:1;">
+                                        <label>SSO Role Name</label>
+                                        <input type="text" id="tunSSORoleName" class="input-glass" placeholder="ej. DeveloperAccess">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Campos Estáticos (Non-SSO) -->
+                            <div id="fields-ssm-static" style="display:none;">
+                                <div class="form-group">
+                                    <label>AWS Region</label>
+                                    <input type="text" id="tunRegionStatic" class="input-glass" placeholder="us-east-1">
+                                </div>
+                                <div class="form-group">
+                                    <label>AWS Access Key ID</label>
+                                    <input type="text" id="tunAccessKey" class="input-glass" placeholder="AKIAIOSFODNN7EXAMPLE">
+                                </div>
+                                <div class="form-group">
+                                    <label>AWS Secret Access Key</label>
+                                    <input type="password" id="tunSecretKey" class="input-glass" placeholder="••••••••••••••••••••••••••••••••">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUB-OPCIONES SSH -->
+                    <div id="fields-ssh" class="dynamic-fields" style="display:none;">
+                        <div class="form-group">
+                            <label>Jump Host</label>
+                            <input type="text" id="tunJumpHost" class="input-glass" placeholder="bastion.corp.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Jump User</label>
+                            <input type="text" id="tunJumpUser" class="input-glass" placeholder="ec2-user">
+                        </div>
+                        <div class="form-group">
+                            <label>SSH Key Filename <span style="font-weight:400">(opcional en /data/ssh_keys)</span></label>
+                            <input type="text" id="tunSSHKey" class="input-glass" placeholder="ej. dev_key.pem">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; margin-top:24px;">
+                        <button type="button" class="btn" style="width:auto; padding:10px 20px; background:transparent; border:1px solid var(--border-color); color:var(--text-muted);" onclick="goToStep(1)">
+                            ⬅ Atrás
+                        </button>
+                        <button type="submit" class="btn" style="width:auto; padding:10px 24px;">
+                            Guardar Túnel 💾
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

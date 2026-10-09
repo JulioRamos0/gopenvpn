@@ -20,5 +20,8 @@ Este archivo contiene las directrices generales para el desarrollo en este repos
 ## Gestión de Especificaciones
 - Todas las especificaciones del proyecto se administrarán y mantendrán dentro del directorio `/specs`.
 
+## Reglas de Infraestructura y Contenedores (Docker)
+- **Sistema Operativo Base**: El contenedor de producción (`Dockerfile`) **DEBE utilizar Ubuntu** (`ubuntu:22.04` o superior) como imagen base de runtime. **NO utilizar Debian, Alpine u otras distribuciones** debido a incompatibilidades críticas con las políticas de D-Bus de OpenVPN 3 Linux (`openvpn3-service-backendstart` / `netcfg`), las cuales fallan en Debian con el error `New tunnel did not respond` al no poder activar los servicios de túnel sin systemd completo.
+
 ## Reglas de Privacidad y Ejemplos
 - **Dominios Ficticios**: NUNCA generar comentarios, documentación o código de ejemplo que utilicen dominios reales provenientes de variables de entorno o configuraciones. Siempre se deberán utilizar dominios genéricos y ficticios para los ejemplos (por ejemplo: `corp.aws.sso`, `git.corp.com`, `hr.corp.com`).
