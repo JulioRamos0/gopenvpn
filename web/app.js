@@ -221,12 +221,12 @@ function renderTunnels() {
                 if (t.sso_authenticated) {
                     ssoBadge = `<span class="sso-badge ok">SSO Auth OK</span>`;
                 } else {
-                    ssoBadge = `<span class="sso-badge expired">SSO Requerido</span>`;
+                    ssoBadge = `<span class="sso-badge expired">SSO Required</span>`;
                 }
             }
 
             if (t.status === 'authenticating') {
-                actBtn = `<button class="icon-btn sso-auth" disabled style="opacity:0.8;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span>Esperando...</span></button>`;
+                actBtn = `<button class="icon-btn sso-auth" disabled style="opacity:0.8;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span>Waiting...</span></button>`;
                 if (t.sso_auth_url) {
                     let openUrl = t.sso_auth_url;
                     if (t.sso_user_code && !openUrl.includes('user_code=')) {
@@ -235,18 +235,18 @@ function renderTunnels() {
 
                     ssoBox = `
                                 <div class="sso-auth-box">
-                                    <div><strong>Autorización requerida:</strong> Confirma el inicio de sesión en AWS.</div>
+                                    <div><strong>Authorization Required:</strong> Confirm your AWS sign-in.</div>
                                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                                        <a href="${openUrl}" target="_blank" rel="noopener noreferrer">Abrir enlace de verificación ↗</a>
-                                        ${t.sso_user_code ? `<span class="sso-code-badge" onclick="navigator.clipboard.writeText('${t.sso_user_code}');" title="Clic para copiar">Código: ${t.sso_user_code} 📋</span>` : ''}
+                                        <a href="${openUrl}" target="_blank" rel="noopener noreferrer">Open verification link ↗</a>
+                                        ${t.sso_user_code ? `<span class="sso-code-badge" onclick="navigator.clipboard.writeText('${t.sso_user_code}');" title="Click to copy">Code: ${t.sso_user_code} 📋</span>` : ''}
                                     </div>
-                                    <div style="font-size:11px; color:var(--text-muted);">El código se rellena automáticamente en el navegador. Cuando confirmes, el túnel quedará listo.</div>
+                                    <div style="font-size:11px; color:var(--text-muted);">The code will pre-fill automatically in your browser. Once confirmed, the tunnel will connect.</div>
                                 </div>
                             `;
                 }
             } else if (t.type === 'aws-ssm' && t.is_sso && !t.sso_authenticated) {
                 // SSO Needs login button - identical to connecting VPN
-                actBtn = `<button class="icon-btn sso-auth" onclick="triggerSSOLogin('${t.id}')" title="Autenticar AWS SSO"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg><span>Autenticar SSO</span></button>`;
+                actBtn = `<button class="icon-btn sso-auth" onclick="triggerSSOLogin('${t.id}')" title="Authenticate AWS SSO"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg><span>Authenticate SSO</span></button>`;
             } else if (t.status === 'connected' || t.status === 'connecting') {
                 actBtn = `<button class="icon-btn delete" onclick="toggleTunnelStatus('${t.id}', 'stop')" title="Stop"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10h6v4H9z"></path></svg></button>`;
             } else {
@@ -393,14 +393,14 @@ function populateProfileSelect(selectedProfile = '') {
         knownProfiles.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p;
-            opt.innerText = `⚙️ Perfil existente: ${p}`;
+            opt.innerText = `⚙️ Existing profile: ${p}`;
             select.appendChild(opt);
         });
     }
 
     const newOpt = document.createElement('option');
     newOpt.value = '__NEW__';
-    newOpt.innerText = '➕ Configurar un perfil nuevo...';
+    newOpt.innerText = '➕ Configure new profile...';
     select.appendChild(newOpt);
 
     if (selectedProfile && knownProfiles.has(selectedProfile)) {
