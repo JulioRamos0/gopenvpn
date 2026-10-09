@@ -8,7 +8,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /gopenvpn ./cmd/server/main.go
 
 # -- Stage 2: Final Image --
-FROM ubuntu:22.04
+FROM debian:bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PORT=8080

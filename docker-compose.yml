@@ -2,6 +2,7 @@ services:
   vpn_servipar:
     build: .
     container_name: vpn_servipar
+    restart: unless-stopped
     cap_add:
       - NET_ADMIN
     devices:
