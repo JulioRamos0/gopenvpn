@@ -123,7 +123,7 @@ services:
     stdin_open: true
     tty: true
     ports:
-      - "8081:80"
+      - "8080:8080"
     environment:
       - OPENVPN_PROFILE=${OPENVPN_PROFILE}
       - AWS_CREDENTIALS=${AWS_CREDENTIALS}
@@ -161,5 +161,5 @@ docker run --rm -it --network container:gopenvpn curlimages/curl https://ifconfi
 ### ⚠️ Important rules about `network_mode`
 
 1. **Shared Ports:** When a container uses the network of another, **it loses the ability to use the `ports` directive**. All ports required by the child container must be published in the parent container (`gopenvpn`).
-2. **Localhost:** Both containers share the same network interface (and the same `localhost`). The child container can communicate with the VPN Web UI by making requests directly to `http://localhost:80`.
+2. **Localhost:** Both containers share the same network interface (and the same `localhost`). The child container can communicate with the VPN Web UI by making requests directly to `http://localhost:8080`.
 3. **Dependencies:** The VPN container must start *before* the containers that depend on it. It is recommended to use `depends_on: gopenvpn` in your `docker-compose.yml`.
