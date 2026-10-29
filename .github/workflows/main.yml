@@ -1,0 +1,13 @@
+name: Test ARM Runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-arm:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Check Architecture
+        run: |
+          uname -m
+          lscpu
