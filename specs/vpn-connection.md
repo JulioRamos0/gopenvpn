@@ -33,13 +33,20 @@ Antes de iniciar cualquier conexión, la aplicación garantiza que el entorno op
   - **Error**: Si falla y no hay `tun0`, devuelve `{"error": "...", "logs": "..."}` con la salida del comando.
 
 ### 5.2. `POST /api/stop`
-- **Descripción**: Fuerza la terminación de la sesión VPN activa.
-- **Flujo de Ejecución**: Lanza el comando `sudo openvpn3 session-manage --disconnect --config /tmp/vpn/servipar.ovpn`.
-- **Respuestas**: Siempre devuelve `{"status": "disconnected"}` tras ejecutar el comando.
+- **Descripción**: Fuerza la terminación de la sesión VPN activa y la limpieza de recursos.
+- **Flujo de Ejecución**:
+  1. Lanza el comando `sudo openvpn3 session-manage --disconnect --config /tmp/vpn/servipar.ovpn`.
+  2. Consulta `openvpn3 sessions-list` para identificar y desconectar forzosamente cualquier sesión remanente por su D-Bus path (`/net/openvpn/v3/sessions/...`), evitando errores de sesiones duplicadas o huérfanas.
+  3. Ejecuta `pkill` para terminar procesos clientes o visores de log en segundo plano.
+  4. Da de baja y elimina la interfaz virtual `tun0` remanente (`ip link delete tun0`).
+- **Respuestas**: Siempre devuelve `{"status": "disconnected"}` tras ejecutar la limpieza.
 
 ### 5.3. `GET /api/status`
 - **Descripción**: Verifica el estado actual y real de la conexión de red.
-- **Flujo de Ejecución**: En lugar de depender del estado del proceso, inspecciona directamente las interfaces de red del sistema operativo usando el paquete `net` de Go. Si existe una interfaz llamada `tun0`, se asume conexión.
+- **Flujo de Ejecución**: En lugar de únicamente comprobar la presencia del nombre de la interfaz, valida que la interfaz `tun0`:
+  1. Exista.
+  2. Tenga la bandera `net.FlagUp` activa.
+  3. Cuente con al menos una dirección IP asignada.
 - **Respuestas**: Devuelve un booleano indicando el estado `{"connected": true | false}`.
 
 ## 6. Consideraciones para la Integración con UI (`/web`)

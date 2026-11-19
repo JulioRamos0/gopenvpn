@@ -93,9 +93,15 @@ async function startVPN() {
 async function stopVPN() {
     if (btnDisconnect.classList.contains('loading')) return;
     btnDisconnect.classList.add('loading');
+    setUIState('disconnected');
     try {
         await fetch('/api/stop', { method: 'POST' });
-    } catch (e) { }
+    } catch (e) {
+        console.error("Error stopping VPN", e);
+    } finally {
+        btnDisconnect.classList.remove('loading');
+        updateStatus();
+    }
 }
 
 // ====================

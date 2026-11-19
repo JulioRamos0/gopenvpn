@@ -43,7 +43,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
-RUN echo "appuser ALL=(ALL) NOPASSWD: /usr/bin/openvpn3, /usr/bin/dbus-daemon, /usr/bin/dbus-uuidgen, /usr/bin/mknod, /usr/bin/mkdir, /usr/bin/rm" > /etc/sudoers.d/appuser \
+RUN echo "appuser ALL=(ALL) NOPASSWD: /usr/bin/openvpn3, /usr/bin/dbus-daemon, /usr/bin/dbus-uuidgen, /usr/bin/mknod, /usr/bin/mkdir, /usr/bin/rm, /sbin/ip, /usr/sbin/ip, /usr/bin/pkill, /bin/kill" > /etc/sudoers.d/appuser \
     && chmod 0440 /etc/sudoers.d/appuser
 
 # Copy the Go binary from builder

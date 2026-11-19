@@ -41,6 +41,7 @@ The frontend operates statelessly regarding persistence, deriving its "truth" fr
 2. **UI State Transitions**:
    - `setUIState(state)` dynamically modifies classes on the `#statusCard`, manages button visibility, and updates text labels.
    - For `auth_required`, it dynamically reveals the SSO link.
+   - When disconnecting (`stopVPN()`), `setUIState('disconnected')` is triggered immediately for optimistic UI response, ensuring the user is returned to the disconnected state and the connect action is re-enabled without being blocked by network latency or hanging interfaces.
 3. **Tab Switching**:
    - Handled via `switchTab(tabName)`, applying `.active` classes to buttons and content blocks to show/hide the "Proxies" and "Tunnels" sections.
 
@@ -57,7 +58,7 @@ The JavaScript fetches data asynchronously from the following Go endpoints:
 |---|---|---|---|
 | **VPN** | `POST` | `/api/start` | Initiates the VPN connection and returns SSO URL if required. |
 | **VPN** | `POST` | `/api/stop` | Terminates the VPN connection and all bound processes. |
-| **VPN** | `GET` | `/api/status` | Returns `{ "connected": bool }` based on `tun0` interface existence. |
+| **VPN** | `GET` | `/api/status` | Returns `{ "connected": bool }` based on `tun0` interface existence, `UP` state flag, and assigned IP address verification. |
 | **Proxies** | `GET` | `/api/proxies` | Retrieves configured reverse proxies and their active status. |
 | **Proxies** | `POST` | `/api/proxies` | Adds a new port-forwarding proxy rule. |
 | **Proxies** | `DELETE` | `/api/proxies?port=` | Removes an existing proxy rule. |
